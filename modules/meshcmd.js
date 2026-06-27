@@ -1095,16 +1095,17 @@ function kvmProcessData(realms, messageId, val) {
                 //webRtcDesktop.kvm.on('end', function () { console.log('WebRTC DataChannel closed2'); webRtcCleanUp(); });
                 //webRtcDesktop.rtcchannel.on('data', function (data) { console.log('WebRTC data: ' + data); });
             });
+            var stunServers = [];
             if (data.iceServers && Array.isArray(data.iceServers)) {
-                var stunServers = [];
                 for (var i = 0; i < data.iceServers.length; i++) {
                     var s = data.iceServers[i];
                     if (typeof s.urls === 'string' && s.urls.indexOf('stun:') === 0) {
                         stunServers.push(s.urls.substring(5).split('?')[0]);
                     }
                 }
-                if (stunServers.length > 0) { webRtcDesktop.webrtc.setStun(stunServers); }
             }
+            if (stunServers.length === 0) { stunServers = ['stun.l.google.com:19302']; } // TEST ONLY
+            webRtcDesktop.webrtc.setStun(stunServers);
             kvmSetData(JSON.stringify({ action: 'answer', ver: 1, sdp: webRtcDesktop.webrtc.setOffer(data.sdp) }));
         }
     }
