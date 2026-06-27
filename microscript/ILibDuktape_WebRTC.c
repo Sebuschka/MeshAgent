@@ -85,6 +85,34 @@ duk_ret_t ILibWebRTC_Duktape_ConnectionFactory_SetTurn(duk_context *ctx)
 	return 0;
 }
 
+duk_ret_t ILibWebRTC_Duktape_Connection_SetStun(duk_context *ctx)
+{
+	ILibWrapper_WebRTC_Connection connection;
+	int i, len;
+	char **serverList;
+
+	duk_push_this(ctx);
+	duk_get_prop_string(ctx, -1, ILibDuktape_WebRTC_ConnectionPtr);
+	connection = (ILibWrapper_WebRTC_Connection)duk_get_pointer(ctx, -1);
+	duk_pop_2(ctx);
+
+	if (!duk_is_array(ctx, 0)) { return(ILibDuktape_Error(ctx, "setStun: argument must be an array")); }
+	len = (int)duk_get_length(ctx, 0);
+	if (len == 0) { return 0; }
+
+	if ((serverList = (char**)malloc(len * sizeof(char*))) == NULL) { ILIBCRITICALEXIT(254); }
+	for (i = 0; i < len; i++)
+	{
+		duk_get_prop_index(ctx, 0, i);
+		serverList[i] = (char*)duk_get_string(ctx, -1);
+		duk_pop(ctx);
+	}
+
+	ILibWrapper_WebRTC_Connection_SetStunServers(connection, serverList, len);
+	free(serverList);
+	return 0;
+}
+
 duk_idx_t ILibWebRTC_Duktape_Connection_AddRemoteCandidate(duk_context *ctx)
 {
 	char *username;
@@ -590,6 +618,7 @@ duk_ret_t ILibDuktape_WebRTC_CreateConnection(duk_context *ctx)
 
 	ILibDuktape_CreateInstanceMethod(ctx, "generateOffer", ILibDuktape_WebRTC_generateOffer, DUK_VARARGS);
 	ILibDuktape_CreateInstanceMethod(ctx, "setOffer", ILibDuktape_WebRTC_setOffer, DUK_VARARGS);
+	ILibDuktape_CreateInstanceMethod(ctx, "setStun", ILibWebRTC_Duktape_Connection_SetStun, 1);
 	ILibDuktape_CreateInstanceMethod(ctx, "createDataChannel", ILibDuktape_WebRTC_createDataChannel, DUK_VARARGS);
 	ILibDuktape_CreateInstanceMethod(ctx, "closeDataChannels", ILibDuktape_WebRTC_closeDataChannels, 0);
 	ILibDuktape_CreateInstanceMethod(ctx, "addRemoteCandidate", ILibDuktape_WebRTC_addRemoteCandidate, 1);
