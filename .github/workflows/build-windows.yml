@@ -16,6 +16,27 @@ jobs:
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@v2
 
+      - name: Create afxres.h stub
+        shell: pwsh
+        run: |
+          $sdkIncludes = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\Include" -Directory |
+            Sort-Object Name -Descending | Select-Object -First 1 -ExpandProperty FullName
+          $afxresPath = "$sdkIncludes\um\afxres.h"
+          if (-not (Test-Path $afxresPath)) {
+            @'
+          #ifndef __AFXRES_H__
+          #define __AFXRES_H__
+          #include <windows.h>
+          #ifndef IDC_STATIC
+          #define IDC_STATIC (-1)
+          #endif
+          #endif
+          '@ | Out-File -FilePath $afxresPath -Encoding ASCII
+            Write-Host "Created afxres.h stub at $afxresPath"
+          } else {
+            Write-Host "afxres.h already exists at $afxresPath"
+          }
+
       - name: Build Release x64
         run: msbuild MeshAgent-2022.sln /p:Configuration=Release /p:Platform=x64 /m /nologo /verbosity:minimal
 
