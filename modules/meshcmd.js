@@ -1105,8 +1105,26 @@ function kvmProcessData(realms, messageId, val) {
                 }
             }
             if (stunServers.length === 0) { stunServers = ['stun.l.google.com:19302']; } // TEST ONLY
+            console.log('[WebRTC] setStun: ' + JSON.stringify(stunServers));
             webRtcDesktop.webrtc.setStun(stunServers);
-            kvmSetData(JSON.stringify({ action: 'answer', ver: 1, sdp: webRtcDesktop.webrtc.setOffer(data.sdp) }));
+            var initialAnswer = webRtcDesktop.webrtc.setOffer(data.sdp);
+            var answerSent = false;
+            function sendWebRtcAnswer(sdp) {
+                if (answerSent) { return; }
+                answerSent = true;
+                console.log('[WebRTC] sending answer SDP (srflx=' + (sdp !== initialAnswer) + ')');
+                kvmSetData(JSON.stringify({ action: 'answer', ver: 1, sdp: sdp }));
+            }
+            var stunTimer = setTimeout(function () {
+                console.log('[WebRTC] STUN timeout, sending host-only answer');
+                sendWebRtcAnswer(initialAnswer);
+            }, 1500);
+            webRtcDesktop.webrtc.on('candidate', function (candidate) {
+                console.log('[WebRTC] STUN candidate: ' + JSON.stringify(candidate));
+                clearTimeout(stunTimer);
+                var updated = webRtcDesktop.webrtc.getUpdatedAnswer(candidate);
+                sendWebRtcAnswer(updated || initialAnswer);
+            });
         }
     }
 }

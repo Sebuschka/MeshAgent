@@ -113,6 +113,39 @@ duk_ret_t ILibWebRTC_Duktape_Connection_SetStun(duk_context *ctx)
 	return 0;
 }
 
+duk_ret_t ILibWebRTC_Duktape_Connection_GetUpdatedAnswer(duk_context *ctx)
+{
+	ILibWrapper_WebRTC_Connection connection;
+	struct sockaddr_in6 *candidate = NULL;
+	char *sdp;
+
+	duk_push_this(ctx);
+	duk_get_prop_string(ctx, -1, ILibDuktape_WebRTC_ConnectionPtr);
+	connection = (ILibWrapper_WebRTC_Connection)duk_get_pointer(ctx, -1);
+	duk_pop_2(ctx);
+
+	if (duk_is_object(ctx, 0))
+	{
+		candidate = Duktape_IPAddress4_FromString(
+			(char*)Duktape_GetStringPropertyValue(ctx, 0, "host", "127.0.0.1"),
+			(unsigned short)Duktape_GetIntPropertyValue(ctx, 0, "port", 0));
+	}
+
+	sdp = ILibWrapper_WebRTC_Connection_AddServerReflexiveCandidateToLocalSDP(connection, candidate);
+	if (candidate != NULL) { free(candidate); }
+
+	if (sdp != NULL)
+	{
+		duk_push_string(ctx, sdp);
+		free(sdp);
+	}
+	else
+	{
+		duk_push_null(ctx);
+	}
+	return 1;
+}
+
 duk_idx_t ILibWebRTC_Duktape_Connection_AddRemoteCandidate(duk_context *ctx)
 {
 	char *username;
@@ -619,6 +652,7 @@ duk_ret_t ILibDuktape_WebRTC_CreateConnection(duk_context *ctx)
 	ILibDuktape_CreateInstanceMethod(ctx, "generateOffer", ILibDuktape_WebRTC_generateOffer, DUK_VARARGS);
 	ILibDuktape_CreateInstanceMethod(ctx, "setOffer", ILibDuktape_WebRTC_setOffer, DUK_VARARGS);
 	ILibDuktape_CreateInstanceMethod(ctx, "setStun", ILibWebRTC_Duktape_Connection_SetStun, 1);
+	ILibDuktape_CreateInstanceMethod(ctx, "getUpdatedAnswer", ILibWebRTC_Duktape_Connection_GetUpdatedAnswer, 1);
 	ILibDuktape_CreateInstanceMethod(ctx, "createDataChannel", ILibDuktape_WebRTC_createDataChannel, DUK_VARARGS);
 	ILibDuktape_CreateInstanceMethod(ctx, "closeDataChannels", ILibDuktape_WebRTC_closeDataChannels, 0);
 	ILibDuktape_CreateInstanceMethod(ctx, "addRemoteCandidate", ILibDuktape_WebRTC_addRemoteCandidate, 1);
